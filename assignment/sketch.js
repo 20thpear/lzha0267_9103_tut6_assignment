@@ -21,17 +21,43 @@ function setup() {
 }
 
 function draw() {
-  // Update grid layer with dynamic time offset for wave effect
+  // Draw and update grid layer with dynamic time offset for wave effect
   drawGridAndDistortion(gridLayer, frameCount);
+  image(gridLayer, 0, 0);
 
-  image(gridLayer, 0, 0); // Display the updated grid layer
-
-  // Update and display the water ripple effect
+  // Update and display water surface
   waveEffect.update();
   waveEffect.display();
 
-  graphicsObjects.forEach(obj => obj.display());
+  // Update and display the swimming rings
+  graphicsObjects.forEach(obj => {
+    obj.update();
+    obj.display();
+  });
 }
+
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+
+  // Regenerate the grid layer to adapt to new canvas dimensions
+  gridLayer = createGraphics(width, height);
+  drawGridAndDistortion(gridLayer);
+
+  // Regenerate the ripple effect to fit the new canvas size
+  waveEffect = new WaveEffect(80, color(0, 164, 223), 3, 200);
+
+  // Adjust positions of graphics objects to match the resized canvas
+  graphicsObjects.forEach(obj => {
+    if (obj instanceof GradientRing || obj instanceof ConcentricCircles || obj instanceof DecorativeCircleRing) {
+      obj.x = map(obj.x, 0, width, 0, windowWidth);
+      obj.y = map(obj.y, 0, height, 0, windowHeight);
+    }
+  });
+
+  redraw();
+}
+
 
 function initialiseGraphics() {
   // Reset the graphic objects and shadow rings arrays
@@ -75,56 +101,13 @@ function initialiseGraphics() {
 
     if (attempts >= maxAttempts) continue;
 
-    // Add a shadow ring to the graphics array and stores its position and radius
-    graphicsObjects.push(new GradientRing(posX, posY, 40, 120, 80, color(6, 38, 96, 20), color(6, 38, 96, 20), color(6, 38, 96, 20)));
+    // Instantiate SwimRing objects and add them to the graphics object array
+    let swimRing = new SwimRing(posX, posY, colourPalette);
+    graphicsObjects.push(swimRing);
     shadowRings.push({ x: posX, y: posY, radius: 80 });
   }
-
-  // Add gradient rings and decorative circles for each shadow ring
-  for (let ring of shadowRings) {
-    let posX = ring.x - 80;
-    let posY = ring.y - 80;
-
-    let shadowColour = random(colourPalette);
-    let midColour = random(colourPalette);
-    let highlightColour = random(colourPalette);
-
-    graphicsObjects.push(new GradientRing(posX, posY, 40, 120, 80, shadowColour, midColour, highlightColour));
-
-    let circleColour = random(colourPalette);
-    graphicsObjects.push(new ConcentricCircles(posX, posY, 5, 40, 70, circleColour));
-
-    let baseRadius = 80;
-    let baseOpacity = 180;
-    let radiusIncrement = 10;
-    let opacityDecrement = 20;
-
-    for (let j = 0; j < 4; j++) {
-      graphicsObjects.push(new DecorativeCircleRing(posX, posY, baseRadius + j * radiusIncrement, 36 + j * 6, color(255, 255, 255, baseOpacity - j * opacityDecrement)));
-    }
-  }
 }
 
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
-
-  // Regenerate the grid layer to adapt to new canvas dimensions
-  gridLayer = createGraphics(width, height);
-  drawGridAndDistortion(gridLayer);
-
-  // Regenerate the ripple effect to fit the new canvas size
-  waveEffect = new WaveEffect(80, color(0, 164, 223), 3, 200);
-
-  // Adjust positions of graphics objects to match the resized canvas
-  graphicsObjects.forEach(obj => {
-    if (obj instanceof GradientRing || obj instanceof ConcentricCircles || obj instanceof DecorativeCircleRing) {
-      obj.x = map(obj.x, 0, width, 0, windowWidth);
-      obj.y = map(obj.y, 0, height, 0, windowHeight);
-    }
-  });
-
-  redraw();
-}
 
 // Class representing a gradient ring with multiple concentric circles
 class GradientRing {
@@ -206,6 +189,78 @@ class DecorativeCircleRing {
   }
 }
 
+
+class SwimRing {
+  constructor(x, y, colourPalette) {
+    // Base position
+    this.baseX = x;
+    this.baseY = y;
+    this.x = x;
+    this.y = y;
+    
+    // Noise offsets for animation
+    this.noiseOffsetX = random(1000);
+    this.noiseOffsetY = random(1000);
+
+    // Initialise colours
+    let shadowColour = random(colourPalette);
+    let midColour = random(colourPalette);
+    let highlightColour = random(colourPalette);
+    let shadowRingColour = color(6, 38, 96, 20)
+    let circleColour = random(colourPalette);
+
+    // Instantiate each part of the swimming rings
+    this.shadowRing = new GradientRing(x + 80, y + 80, 40, 120, 80, shadowRingColour, shadowRingColour, shadowRingColour);
+    this.gradientRing = new GradientRing(x, y, 40, 120, 80, shadowColour, midColour, highlightColour);
+    this.concentricCircles = new ConcentricCircles(x, y, 5, 40, 70, circleColour);
+    
+    this.decorativeCircles = [];
+    let baseRadius = 80;
+    let baseOpacity = 180;
+    let radiusIncrement = 10;
+    let opacityDecrement = 20;
+    for (let j = 0; j < 4; j++) {
+      this.decorativeCircles.push(
+        new DecorativeCircleRing(x, y, baseRadius + j * radiusIncrement, 36 + j * 6, color(255, 255, 255, baseOpacity - j * opacityDecrement))
+      );
+    }
+  }
+
+  // Update position using Perlin noise
+  update() {
+    let offsetX = map(noise(this.noiseOffsetX), 0, 1, -30, 30);
+    let offsetY = map(noise(this.noiseOffsetY), 0, 1, -30, 30);
+
+    this.x = this.baseX + offsetX;
+    this.y = this.baseY + offsetY;
+
+    // Increment noise offsets to create smooth animation
+    this.noiseOffsetX += 0.02;
+    this.noiseOffsetY += 0.02;
+
+    // Update the position of each part
+    this.shadowRing.x = this.x + 80;
+    this.shadowRing.y = this.y + 80;
+    this.gradientRing.x = this.x;
+    this.gradientRing.y = this.y;
+    this.concentricCircles.x = this.x;
+    this.concentricCircles.y = this.y;
+    this.decorativeCircles.forEach(circle => {
+      circle.x = this.x;
+      circle.y = this.y;
+    });
+  }
+
+  // Display each part of the swimming rings
+  display() {
+    this.shadowRing.display();
+    this.gradientRing.display();
+    this.concentricCircles.display();
+    this.decorativeCircles.forEach(circle => circle.display());
+  }
+}
+
+
 // Function to draw a distorted grid with Perlin noise offsets
 function drawGridAndDistortion(layer, timeOffset = 0) {
   layer.clear();
@@ -262,8 +317,8 @@ class Point {
     this.position.y = this.baseY + moveY;
 
     // Increase noise offset for faster movement
-    this.noiseOffsetX += 0.2;
-    this.noiseOffsetY += 0.2;
+    this.noiseOffsetX += 0.1;
+    this.noiseOffsetY += 0.1;
   }
 }
 
