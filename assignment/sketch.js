@@ -1,5 +1,5 @@
 let graphicsObjects = []; 
-let colorPalette;
+let colourPalette;
 let shadowRings = [];
 let waveEffect;
 let gridLayer;
@@ -8,37 +8,38 @@ let noiseOffsetY = 0;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  initializeGraphics();
+  initialiseGraphics();
   pixelDensity(1);
 
-  // Initializes the ripple effect in a blue color scheme
-  let poolColor = color(44, 169, 225);
-  waveEffect = new WaveEffect(120, poolColor, 3, 200);
+  // Initialise the ripple effect in a blue colour scheme
+  let poolColour = color(44, 169, 225);
+  waveEffect = new WaveEffect(120, poolColour, 3, 200);
 
-  // Creates the grid layer with distortion effects
+  // Create the grid layer with distortion effects
   gridLayer = createGraphics(width, height);
   drawGridAndDistortion(gridLayer);
 }
 
 function draw() {
-  background(240);
-  image(gridLayer, 0, 0);
-  
-  // Updates the ripple effect only every third frame to enhance performance
-  if (frameCount % 3 === 0) {
-    waveEffect.update();
-  }
+  // Update grid layer with dynamic time offset for wave effect
+  drawGridAndDistortion(gridLayer, frameCount);
+
+  image(gridLayer, 0, 0); // Display the updated grid layer
+
+  // Update and display the water ripple effect
+  waveEffect.update();
   waveEffect.display();
+
   graphicsObjects.forEach(obj => obj.display());
 }
 
-function initializeGraphics() {
-  // Resets the graphic objects and shadow rings arrays
+function initialiseGraphics() {
+  // Reset the graphic objects and shadow rings arrays
   graphicsObjects = [];
   shadowRings = [];
 
-  // Defines a color palette for the rings and other elements
-  colorPalette = [
+  // Define a colour palette for the rings and other elements
+  colourPalette = [
     color(245, 185, 193),
     color(237, 170, 63),
     color(166, 233, 156),
@@ -47,10 +48,10 @@ function initializeGraphics() {
     color(149, 205, 232)
   ];
 
-  // Sets the minimum distance between shadow rings to avoid overlap
+  // Set the minimum distance between shadow rings to avoid overlap
   const minDistance = 250;
 
-  // Creates multiple shadow rings that do not overlap
+  // Create multiple shadow rings that do not overlap
   for (let i = 0; i < 10; i++) {
     let posX, posY;
     let isOverlapping;
@@ -74,24 +75,24 @@ function initializeGraphics() {
 
     if (attempts >= maxAttempts) continue;
 
-    // Adds a shadow ring to the graphics array and stores its position and radius
+    // Add a shadow ring to the graphics array and stores its position and radius
     graphicsObjects.push(new GradientRing(posX, posY, 40, 120, 80, color(6, 38, 96, 20), color(6, 38, 96, 20), color(6, 38, 96, 20)));
     shadowRings.push({ x: posX, y: posY, radius: 80 });
   }
 
-  // Adds gradient rings and decorative circles for each shadow ring
+  // Add gradient rings and decorative circles for each shadow ring
   for (let ring of shadowRings) {
     let posX = ring.x - 80;
     let posY = ring.y - 80;
 
-    let shadowColor = random(colorPalette);
-    let midColor = random(colorPalette);
-    let highlightColor = random(colorPalette);
+    let shadowColour = random(colourPalette);
+    let midColour = random(colourPalette);
+    let highlightColour = random(colourPalette);
 
-    graphicsObjects.push(new GradientRing(posX, posY, 40, 120, 80, shadowColor, midColor, highlightColor));
+    graphicsObjects.push(new GradientRing(posX, posY, 40, 120, 80, shadowColour, midColour, highlightColour));
 
-    let circleColor = random(colorPalette);
-    graphicsObjects.push(new ConcentricCircles(posX, posY, 5, 40, 70, circleColor));
+    let circleColour = random(colourPalette);
+    graphicsObjects.push(new ConcentricCircles(posX, posY, 5, 40, 70, circleColour));
 
     let baseRadius = 80;
     let baseOpacity = 180;
@@ -107,14 +108,14 @@ function initializeGraphics() {
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 
-  // Regenerates the grid layer to adapt to new canvas dimensions
+  // Regenerate the grid layer to adapt to new canvas dimensions
   gridLayer = createGraphics(width, height);
   drawGridAndDistortion(gridLayer);
 
-  // Regenerates the ripple effect to fit the new canvas size
+  // Regenerate the ripple effect to fit the new canvas size
   waveEffect = new WaveEffect(80, color(0, 164, 223), 3, 200);
 
-  // Adjusts positions of graphics objects to match the resized canvas
+  // Adjust positions of graphics objects to match the resized canvas
   graphicsObjects.forEach(obj => {
     if (obj instanceof GradientRing || obj instanceof ConcentricCircles || obj instanceof DecorativeCircleRing) {
       obj.x = map(obj.x, 0, width, 0, windowWidth);
@@ -127,30 +128,30 @@ function windowResized() {
 
 // Class representing a gradient ring with multiple concentric circles
 class GradientRing {
-  constructor(x, y, innerRadius, outerRadius, numRings, shadowColor, midColor, highlightColor) {
+  constructor(x, y, innerRadius, outerRadius, numRings, shadowColour, midColour, highlightColour) {
     this.x = x;
     this.y = y;
     this.innerRadius = innerRadius;
     this.outerRadius = outerRadius;
     this.numRings = numRings;
-    this.colors = [shadowColor, midColor, highlightColor];
+    this.colours = [shadowColour, midColour, highlightColour];
   }
 
-  // Calculates the color for each ring segment based on its position
-  calculateColor(t) {
+  // Calculate the colour for each ring segment based on its position
+  calculateColour(t) {
     if (t < 0.5) {
-      return lerpColor(this.colors[0], this.colors[1], t * 2);
+      return lerpColor(this.colours[0], this.colours[1], t * 2);
     } else {
-      return lerpColor(this.colors[1], this.colors[2], (t - 0.5) * 2);
+      return lerpColor(this.colours[1], this.colours[2], (t - 0.5) * 2);
     }
   }
 
-  // Draws each ring with a gradient effect
+  // Draw each ring with a gradient effect
   display() {
     let step = (this.outerRadius - this.innerRadius) / this.numRings;
     for (let r = this.innerRadius; r <= this.outerRadius; r += step) {
       let t = map(r, this.innerRadius, this.outerRadius, 0, 1);
-      stroke(this.calculateColor(t));
+      stroke(this.calculateColour(t));
       strokeWeight(5);
       noFill();
       ellipse(this.x, this.y, r * 2, r * 2);
@@ -160,19 +161,19 @@ class GradientRing {
 
 // Class representing concentric circles, used for decorative purposes
 class ConcentricCircles {
-  constructor(x, y, numCircles, minRadius, maxRadius, strokeColor) {
+  constructor(x, y, numCircles, minRadius, maxRadius, strokeColour) {
     this.x = x;
     this.y = y;
     this.numCircles = numCircles;
     this.minRadius = minRadius;
     this.maxRadius = maxRadius;
-    this.strokeColor = strokeColor;
+    this.strokeColour = strokeColour;
   }
 
-  // Draws concentric circles from minRadius to maxRadius
+  // Draw concentric circles from minRadius to maxRadius
   display() {
     noFill();
-    stroke(this.strokeColor);
+    stroke(this.strokeColour);
     strokeWeight(2);
     for (let i = 0; i < this.numCircles; i++) {
       let radius = map(i, 0, this.numCircles - 1, this.minRadius, this.maxRadius);
@@ -183,18 +184,18 @@ class ConcentricCircles {
 
 // Class representing a ring of decorative circles positioned along a larger ring
 class DecorativeCircleRing {
-  constructor(x, y, radius, numCircles, fillColor) {
+  constructor(x, y, radius, numCircles, fillColour) {
     this.x = x;
     this.y = y;
     this.radius = radius;
     this.numCircles = numCircles;
-    this.fillColor = fillColor;
+    this.fillColour = fillColour;
     this.angleStep = TWO_PI / this.numCircles;
   }
 
-  // Draws small circles evenly spaced along the outer radius
+  // Draw small circles evenly spaced along the outer radius
   display() {
-    fill(this.fillColor);
+    fill(this.fillColour);
     noStroke();
     for (let i = 0; i < this.numCircles; i++) {
       let angle = i * this.angleStep;
@@ -206,28 +207,38 @@ class DecorativeCircleRing {
 }
 
 // Function to draw a distorted grid with Perlin noise offsets
-function drawGridAndDistortion(layer) {
+function drawGridAndDistortion(layer, timeOffset = 0) {
+  layer.clear();
   layer.background(173, 216, 230);
   layer.stroke(100, 150, 200);
   layer.strokeWeight(2);
-  let gridSize = 40;
-  
-  for (let x = 0; x < width; x += gridSize) {
-    layer.beginShape();
-    for (let y = 0; y <= height; y += gridSize) {
-      let offsetX = noise(x * 0.1, y * 0.1) * 10 - 5;
-      layer.vertex(x + offsetX, y);
-    }
-    layer.endShape();
-  }
 
-  for (let y = 0; y < height; y += gridSize) {
-    layer.beginShape();
-    for (let x = 0; x <= width; x += gridSize) {
-      let offsetY = noise(x * 0.1, y * 0.1) * 10 - 5;
-      layer.vertex(x, y + offsetY);
+  let gridSize = 40;
+  let noiseScale = 0.2;
+  let noiseMagnitude = 25;
+
+  // Loop through each grid cell
+  for (let x = 0; x < width; x += gridSize) {
+    for (let y = 0; y < height; y += gridSize) {
+      
+      // Calculate offset for each corner of the grid cell using Perlin noise
+      let offsetX1 = noise(x * noiseScale, y * noiseScale, timeOffset * 0.02) * noiseMagnitude - noiseMagnitude / 2;
+      let offsetY1 = noise(x * noiseScale + 1000, y * noiseScale, timeOffset * 0.02) * noiseMagnitude - noiseMagnitude / 2;
+      let offsetX2 = noise((x + gridSize) * noiseScale, y * noiseScale, timeOffset * 0.02) * noiseMagnitude - noiseMagnitude / 2;
+      let offsetY2 = noise((x + gridSize) * noiseScale + 1000, y * noiseScale, timeOffset * 0.02) * noiseMagnitude - noiseMagnitude / 2;
+      let offsetX3 = noise((x + gridSize) * noiseScale, (y + gridSize) * noiseScale, timeOffset * 0.02) * noiseMagnitude - noiseMagnitude / 2;
+      let offsetY3 = noise((x + gridSize) * noiseScale + 1000, (y + gridSize) * noiseScale, timeOffset * 0.02) * noiseMagnitude - noiseMagnitude / 2;
+      let offsetX4 = noise(x * noiseScale, (y + gridSize) * noiseScale, timeOffset * 0.02) * noiseMagnitude - noiseMagnitude / 2;
+      let offsetY4 = noise(x * noiseScale + 1000, (y + gridSize) * noiseScale, timeOffset * 0.02) * noiseMagnitude - noiseMagnitude / 2;
+
+      // Draw the grid cell using the distorted corners
+      layer.beginShape();
+      layer.vertex(x + offsetX1, y + offsetY1);              // Top-left corner
+      layer.vertex(x + gridSize + offsetX2, y + offsetY2);   // Top-right corner
+      layer.vertex(x + gridSize + offsetX3, y + gridSize + offsetY3); // Bottom-right corner
+      layer.vertex(x + offsetX4, y + gridSize + offsetY4);   // Bottom-left corner
+      layer.endShape(CLOSE);
     }
-    layer.endShape();
   }
 }
 
@@ -241,7 +252,7 @@ class Point {
     this.noiseOffsetY = random(1000);
   }
 
-  // Updates the position of the point to create a wave-like motion
+  // Update the position of the point to create a wave-like motion
   update() {
     let moveX = map(noise(this.noiseOffsetX), 0, 1, -30, 30);
     let moveY = map(noise(this.noiseOffsetY), 0, 1, -30, 30);
@@ -258,11 +269,11 @@ class Point {
 
 // Class representing the wave effect by generating and displaying ripple patterns
 class WaveEffect {
-  constructor(numPoints, bgColor, step, transparency) {
+  constructor(numPoints, bgColour, step, transparency) {
     this.points = [];
     this.step = step;
     this.transparency = transparency;
-    this.bgColor = bgColor;
+    this.bgColour = bgColour;
 
     for (let i = 0; i < numPoints; i++) {
       let x = random(width);
@@ -275,13 +286,13 @@ class WaveEffect {
     this.generateWaveLayer();
   }
   
-  // Updates all feature points and regenerates the wave layer
+  // Update all feature points and regenerate the wave layer
   update() {
     this.points.forEach(point => point.update());
     this.generateWaveLayer();
   }
 
-  // Generates the ripple effect based on distances to feature points
+  // Generate the ripple effect based on distances to feature points
   generateWaveLayer() {
     this.waveLayer.clear();
     this.waveLayer.loadPixels();
@@ -295,9 +306,9 @@ class WaveEffect {
         }
 
         let noiseVal = Math.sqrt(minDist);
-        let colR = this.waveColor(noiseVal, red(this.bgColor), 14.5, 2.5);
-        let colG = this.waveColor(noiseVal, green(this.bgColor), 21, 2.5);
-        let colB = this.waveColor(noiseVal, blue(this.bgColor), 40, 3.0);
+        let colR = this.waveColor(noiseVal, red(this.bgColour), 14.5, 2.5);
+        let colG = this.waveColor(noiseVal, green(this.bgColour), 21, 2.5);
+        let colB = this.waveColor(noiseVal, blue(this.bgColour), 40, 3.0);
 
         for (let dx = 0; dx < this.step; dx++) {
           for (let dy = 0; dy < this.step; dy++) {
@@ -318,12 +329,12 @@ class WaveEffect {
     this.waveLayer.updatePixels();
   }
 
-  // Calculates the color for wave effect based on distance and base color
+  // Calculate the colour for wave effect based on distance and base colour
   waveColor(distance, base, a, e) {
     return constrain(base + Math.pow(distance / a, e), 0, 255);
   }
 
-  // Displays the wave effect layer on the canvas
+  // Display the wave effect layer on the canvas
   display() {
     image(this.waveLayer, 0, 0);
   }
