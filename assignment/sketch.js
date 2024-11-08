@@ -382,7 +382,6 @@ class WaveEffect {
   generateWaveLayer() {
     // Clear the layer to remove any previous drawings
     this.waveLayer.clear();
-    this.waveLayer.clear();
     this.waveLayer.loadPixels();
 
     // Iterate over the canvas in steps to create the wave pattern
