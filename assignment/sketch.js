@@ -1,13 +1,23 @@
+// Array to store all graphic objects, including rings and decorative elements
 let graphicsObjects = []; 
+// Array holding colour palette inspired by the artwork
 let colourPalette;
+// Array to store shadow ring data for non-overlapping placement
 let shadowRings = [];
+// Object for creating the water ripple effect layer
 let waveEffect;
+// Graphics layer for drawing the distorted grid pattern
 let gridLayer;
+
+// Noise offsets for moving grid distortion
 let noiseOffsetX = 0;
 let noiseOffsetY = 0;
 
+
 function setup() {
+  // Create a canvas that has the same size as the browser window
   createCanvas(windowWidth, windowHeight);
+  // Initialise graphic elements
   initialiseGraphics();
   pixelDensity(1);
 
@@ -48,23 +58,27 @@ function windowResized() {
   waveEffect = new WaveEffect(80, color(0, 164, 223), 3, 200);
 
   // Adjust positions of graphics objects to match the resized canvas
-  graphicsObjects.forEach(obj => {
+  for (let i = 0; i < graphicsObjects.length; i++) {
+    let obj = graphicsObjects[i];
+    
+    // Apply the instanceof operator "to test the presence of constructor.prototype in object's prototype chain." This quotation and technique is from https://canvas.sydney.edu.au/courses/60108/assignments/556120
+    // Classes: GradientRing, ConcentricCircles and DecorativeCircleRing contain the prototype property
     if (obj instanceof GradientRing || obj instanceof ConcentricCircles || obj instanceof DecorativeCircleRing) {
       obj.x = map(obj.x, 0, width, 0, windowWidth);
       obj.y = map(obj.y, 0, height, 0, windowHeight);
     }
-  });
+  }
 
   redraw();
 }
 
 
 function initialiseGraphics() {
-  // Reset the graphic objects and shadow rings arrays
+  // Initialise the graphic objects and shadow rings arrays
   graphicsObjects = [];
   shadowRings = [];
 
-  // Define a colour palette for the rings and other elements
+  // Define a colour palette inspired by the selected artwork for the rings and other elements
   colourPalette = [
     color(245, 185, 193),
     color(237, 170, 63),
@@ -77,18 +91,22 @@ function initialiseGraphics() {
   // Set the minimum distance between shadow rings to avoid overlap
   const minDistance = 250;
 
-  // Create multiple shadow rings that do not overlap
+  // Create up to 10 non-ovelapping rings
   for (let i = 0; i < 10; i++) {
     let posX, posY;
     let isOverlapping;
     let attempts = 0;
+    // Set the maximum number of attempts to 100
     const maxAttempts = 100;
 
+    // Execute the loop
     do {
+      // Random x and y coordinates
       posX = random(100, width - 50);
       posY = random(100, height - 50);
       isOverlapping = false;
 
+      // Loop through the shadowRings array to check whether the new shadow ring and the existed shadow rings overlap
       for (let ring of shadowRings) {
         let distance = dist(posX, posY, ring.x, ring.y);
         if (distance < minDistance) {
@@ -99,6 +117,7 @@ function initialiseGraphics() {
       attempts++;
     } while (isOverlapping && attempts < maxAttempts);
 
+    // If the number of random attempts reaches the maximum number, and does not get a random ring which does not overlap with other rings, then stop drawing the current ring. "The continue statement breaks one iteration (in the loop)", and this quotation of this technique is from https://www.w3schools.com/js/js_break.asp
     if (attempts >= maxAttempts) continue;
 
     // Instantiate SwimRing objects and add them to the graphics object array
@@ -189,7 +208,7 @@ class DecorativeCircleRing {
   }
 }
 
-
+// SwimRing class representing a swimming ring integrated all ring elements
 class SwimRing {
   constructor(x, y, colourPalette) {
     // Base position
@@ -297,7 +316,13 @@ function drawGridAndDistortion(layer, timeOffset = 0) {
   }
 }
 
-// Class representing a point that oscillates based on Perlin noise
+
+// Original ripple effect implementation using Worley Noise from Kazuki Umeda
+// Source: https://www.youtube.com/watch?app=desktop&v=kUexPZMIwuA
+// GitHub: https://github.com/Creativeguru97/YouTube_tutorial/blob/master/Play_with_noise/waterSurface/sketch.js
+// Modified for additional features and integration into project
+
+// Point class representing each feature point
 class Point {
   constructor(x, y) {
     this.position = createVector(x, y);
@@ -322,21 +347,27 @@ class Point {
   }
 }
 
-// Class representing the wave effect by generating and displaying ripple patterns
+// WaveEffect class responsible for generating and displaying ripple patterns
 class WaveEffect {
   constructor(numPoints, bgColour, step, transparency) {
     this.points = [];
+    // Spacing between calculated points in the ripple effect
     this.step = step;
+    // Transparency of the ripple layer
     this.transparency = transparency;
+    // Background colour of the pool effect
     this.bgColour = bgColour;
 
+    // Generate random feature points within the canvas
     for (let i = 0; i < numPoints; i++) {
       let x = random(width);
       let y = random(height);
       this.points.push(new Point(x, y));
     }
 
+    // Create a graphics layer for the wave effect
     this.waveLayer = createGraphics(width, height);
+    // Set pixel density to 1 for consistency
     this.waveLayer.pixelDensity(1);
     this.generateWaveLayer();
   }
@@ -347,30 +378,45 @@ class WaveEffect {
     this.generateWaveLayer();
   }
 
-  // Generate the ripple effect based on distances to feature points
+  // Method to generate the ripple effect based on distances to feature points
   generateWaveLayer() {
+    // Clear the layer to remove any previous drawings
+    this.waveLayer.clear();
     this.waveLayer.clear();
     this.waveLayer.loadPixels();
 
+    // Iterate over the canvas in steps to create the wave pattern
     for (let x = 0; x < width; x += this.step) {
       for (let y = 0; y < height; y += this.step) {
+
+        // Find the minimum distance from the current position to any feature point
         let minDist = Infinity;
         for (let point of this.points) {
           let d = (x - point.position.x) ** 2 + (y - point.position.y) ** 2;
           if (d < minDist) minDist = d;
         }
 
+        // Calculate noise value based on the distance to the nearest feature point
         let noiseVal = Math.sqrt(minDist);
+
+        // Calculate colour values for each channel based on the distance and pool background colour
         let colR = this.waveColor(noiseVal, red(this.bgColour), 14.5, 2.5);
         let colG = this.waveColor(noiseVal, green(this.bgColour), 21, 2.5);
         let colB = this.waveColor(noiseVal, blue(this.bgColour), 40, 3.0);
 
+        // Apply the calculated colour to each pixel within the current step
         for (let dx = 0; dx < this.step; dx++) {
           for (let dy = 0; dy < this.step; dy++) {
             let px = x + dx;
             let py = y + dy;
+
+            // Ensure stay within canvas boundaries
             if (px < width && py < height) {
+
+              // Calculate pixel array index
               let index = (px + py * width) * 4;
+
+              // Set pixel colour channels (RGBA) based on calculated colour values and transparency
               this.waveLayer.pixels[index + 0] = colR;
               this.waveLayer.pixels[index + 1] = colG;
               this.waveLayer.pixels[index + 2] = colB;
@@ -381,15 +427,16 @@ class WaveEffect {
       }
     }
 
+    // Apply all changes to the pixels array
     this.waveLayer.updatePixels();
   }
 
-  // Calculate the colour for wave effect based on distance and base colour
+  // Method to calculate the colour for wave effect based on distance and base colour from Kazuki Umeda
   waveColor(distance, base, a, e) {
-    return constrain(base + Math.pow(distance / a, e), 0, 255);
+    return constrain(base + Math.pow(distance / a, e), 0, 255); // Constrain result to valid colour range
   }
 
-  // Display the wave effect layer on the canvas
+  // Method to display the generated ripple effect layer on the canvas
   display() {
     image(this.waveLayer, 0, 0);
   }
